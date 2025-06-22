@@ -25,11 +25,20 @@ def _generar_desde_json(json_data: dict) -> str:
 
 def lambda_handler(event, context):
     try:
-        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
-        usuario_id = authorizer_context.get('principalId')
+        
+        headers = event.get("headers", {})
+        token = headers.get("Authorization", "").replace("Bearer ", "").strip()
 
-        if not usuario_id:
-            return {"statusCode": 403, "body": json.dumps({"error": "Acceso denegado. Identidad de usuario no proporcionada."})}
+        if not token:
+            return {"statusCode": 401, "body": json.dumps({"error": "Token requerido"})}
+
+        tabla_tokens = dynamodb.Table(os.environ['TOKENS_TABLE_NAME'])
+        response = tabla_tokens.get_item(Key={"token": token})
+
+        if 'Item' not in response:
+            return {"statusCode": 403, "body": json.dumps({"error": "Token inválido o expirado"})}
+
+        usuario_id = response['Item']['usuario_id']
 
         body = json.loads(event.get("body", "{}"))
         codigo = body.get("source", "").strip()
@@ -78,3 +87,4 @@ def lambda_handler(event, context):
         error_message = f"Error inesperado: {str(e)}. Traceback: {traceback.format_exc()}"
         print(error_message)
         return {"statusCode": 500, "body": json.dumps({"error": "Ocurrió un error interno en el servidor."})}
+
