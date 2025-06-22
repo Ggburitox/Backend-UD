@@ -2,9 +2,8 @@ import json
 import boto3
 import uuid
 import os
+import base64
 import traceback
-
-from diagrams import Diagram, EC2, S3
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -12,9 +11,10 @@ dynamodb = boto3.resource("dynamodb")
 BUCKET_NAME = os.environ['BUCKET_NAME']
 TOKENS_TABLE = os.environ['TOKENS_TABLE_NAME']
 
-def generar_imagen_aws(path: str):
-    with Diagram("Simple AWS Diagram", outformat="png", filename=path, show=False):
-        S3("storage") >> EC2("backend")
+def generar_imagen_simulada(contenido: str) -> bytes:
+    # Simula una imagen PNG desde texto (base64 dummy)
+    texto = f"IMAGEN-SIMULADA-AWS: {contenido}".encode("utf-8")
+    return base64.b64encode(texto)
 
 def lambda_handler(event, context):
     try:
@@ -39,21 +39,19 @@ def lambda_handler(event, context):
             return {"statusCode": 400, "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})}
 
         archivo_id = str(uuid.uuid4())
-        ruta_local = f"/tmp/{archivo_id}.png"
         s3_key = f"{usuario_id}/{tipo}/{archivo_id}.png"
 
         if tipo == "aws":
-            generar_imagen_aws(f"/tmp/{archivo_id}")
+            imagen_base64 = generar_imagen_simulada(codigo)
         else:
             return {"statusCode": 400, "body": json.dumps({"error": f"Tipo de diagrama '{tipo}' no soportado aún."})}
 
-        with open(ruta_local, "rb") as f:
-            imagen = f.read()
+        imagen_bytes = base64.b64decode(imagen_base64)
 
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key=s3_key,
-            Body=imagen,
+            Body=imagen_bytes,
             ContentType='image/png'
         )
 
