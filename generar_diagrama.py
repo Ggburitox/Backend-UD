@@ -4,7 +4,7 @@ import uuid
 import os
 import traceback
 
-from diagrams import Diagram, EC2, S3  # Puedes agregar más nodos si deseas
+from diagrams import Diagram, EC2, S3
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -12,9 +12,7 @@ dynamodb = boto3.resource("dynamodb")
 BUCKET_NAME = os.environ['BUCKET_NAME']
 TOKENS_TABLE = os.environ['TOKENS_TABLE_NAME']
 
-def generar_imagen_aws(codigo_python: str, path: str):
-    # Guardamos el código en un archivo temporal y lo ejecutamos con seguridad limitada
-    # Pero para esta demo, lo generamos manualmente
+def generar_imagen_aws(path: str):
     with Diagram("Simple AWS Diagram", outformat="png", filename=path, show=False):
         S3("storage") >> EC2("backend")
 
@@ -45,7 +43,7 @@ def lambda_handler(event, context):
         s3_key = f"{usuario_id}/{tipo}/{archivo_id}.png"
 
         if tipo == "aws":
-            generar_imagen_aws(codigo, f"/tmp/{archivo_id}")
+            generar_imagen_aws(f"/tmp/{archivo_id}")
         else:
             return {"statusCode": 400, "body": json.dumps({"error": f"Tipo de diagrama '{tipo}' no soportado aún."})}
 
