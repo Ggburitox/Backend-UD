@@ -2,7 +2,6 @@ import json
 import boto3
 import os
 import base64
-from datetime import datetime
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -23,10 +22,13 @@ def lambda_handler(event, context):
         token = headers.get("Authorization", "").replace("Bearer ", "").strip()
 
         if not token:
-            return {"statusCode": 401, "body": json.dumps({"error": "Token requerido"})}
+            return {
+                "statusCode": 401,
+                "headers": {"Access-Control-Allow-Origin": "*"},
+                "body": json.dumps({"error": "Token requerido"})
+            }
 
         usuario_id = verificar_token(token)
-
         body = json.loads(event.get("body", "{}"))
         archivo_id = body.get("archivo_id")
         tipo = body.get("tipo")
@@ -34,6 +36,7 @@ def lambda_handler(event, context):
         if not archivo_id or not tipo:
             return {
                 "statusCode": 400,
+                "headers": {"Access-Control-Allow-Origin": "*"},
                 "body": json.dumps({"error": "'archivo_id' y 'tipo' son requeridos"})
             }
 
@@ -44,6 +47,7 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": {"Access-Control-Allow-Origin": "*"},
             "body": json.dumps({
                 "imagen_base64": f"data:image/png;base64,{imagen_base64}"
             })
@@ -52,5 +56,6 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": {"Access-Control-Allow-Origin": "*"},
             "body": json.dumps({"error": str(e)})
         }
