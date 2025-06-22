@@ -98,4 +98,10 @@ def lambda_handler(event, context):
             "body": json.dumps({"error": str(ve)})
         }
     except Exception as e:
-        error_message = f"Error inesperado: {str(e)}. Traceback: {traceback_
+        print("Error inesperado:", str(e))
+        print(traceback.format_exc())
+        return {
+            "statusCode": 500,
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"error": "Ocurrió un error interno en el servidor."})
+        }
