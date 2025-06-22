@@ -1,6 +1,5 @@
 org: thiagorm
 service: diagram-studio-api
-frameworkVersion: '3'
 
 plugins:
   - serverless-python-requirements
@@ -9,7 +8,7 @@ provider:
   name: aws
   runtime: python3.12
   memorySize: 1024
-  timeout: 30
+  timeout: 29
   iam:
     role: arn:aws:iam::264641143307:role/LabRole
   environment:
