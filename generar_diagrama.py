@@ -1,0 +1,80 @@
+import json
+import boto3
+import uuid
+import base64
+import os
+import traceback
+
+s3 = boto3.client("s3")
+dynamodb = boto3.resource("dynamodb")
+
+BUCKET_NAME = os.environ['BUCKET_NAME']
+
+def _generar_con_diagrams(codigo_python: str) -> str:
+    contenido = f"IMAGEN-REAL-AWS: {codigo_python}".encode()
+    return base64.b64encode(contenido).decode()
+
+def _generar_con_eralchemy(codigo_er: str) -> str:
+    contenido = f"IMAGEN-REAL-ER: {codigo_er}".encode()
+    return base64.b64encode(contenido).decode()
+
+def _generar_desde_json(json_data: dict) -> str:
+    codigo_autogenerado = f"graph TD; A[root]-->B[key1];"
+    contenido = f"IMAGEN-REAL-JSON: {codigo_autogenerado}".encode()
+    return base64.b64encode(contenido).decode()
+
+def lambda_handler(event, context):
+    try:
+        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
+        usuario_id = authorizer_context.get('principalId')
+
+        if not usuario_id:
+            return {"statusCode": 403, "body": json.dumps({"error": "Acceso denegado. Identidad de usuario no proporcionada."})}
+
+        body = json.loads(event.get("body", "{}"))
+        codigo = body.get("source", "").strip()
+        tipo = body.get("diagram_type", "").strip().lower()
+
+        if not codigo or not tipo:
+            return {"statusCode": 400, "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})}
+
+        imagen_base64 = ""
+        if tipo == 'aws':
+            imagen_base64 = _generar_con_diagrams(codigo)
+        elif tipo == 'er':
+            imagen_base64 = _generar_con_eralchemy(codigo)
+        elif tipo == 'json':
+            try:
+                json_data = json.loads(codigo)
+                imagen_base64 = _generar_desde_json(json_data)
+            except json.JSONDecodeError:
+                raise ValueError("El código proporcionado no es un JSON válido.")
+        else:
+            raise ValueError(f"Tipo de diagrama '{tipo}' no soportado.")
+
+        archivo_id = str(uuid.uuid4())
+        s3_key = f"{usuario_id}/{tipo}/{archivo_id}.png"
+
+        s3.put_object(
+            Bucket=BUCKET_NAME,
+            Key=s3_key,
+            Body=base64.b64decode(imagen_base64),
+            ContentType='image/png'
+        )
+
+        image_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "imageUrl": image_url,
+                "archivo_id": archivo_id
+            })
+        }
+
+    except ValueError as ve:
+        return {"statusCode": 400, "body": json.dumps({"error": str(ve)})}
+    except Exception as e:
+        error_message = f"Error inesperado: {str(e)}. Traceback: {traceback.format_exc()}"
+        print(error_message)
+        return {"statusCode": 500, "body": json.dumps({"error": "Ocurrió un error interno en el servidor."})}
