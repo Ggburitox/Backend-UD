@@ -3,7 +3,6 @@ import boto3
 import hashlib
 import uuid
 import os
-from datetime import datetime, timedelta
 
 dynamodb = boto3.resource("dynamodb")
 USERS_TABLE = os.environ.get("USERS_TABLE_NAME")
@@ -21,7 +20,7 @@ def lambda_handler(event, context):
         if not email or not password or not username:
             return {
                 'statusCode': 400,
-                'headers': {"Access-Control-Allow-Origin": "*"},
+                'headers': {'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({'error': 'Email, contraseña y nombre de usuario son requeridos'})
             }
 
@@ -31,7 +30,7 @@ def lambda_handler(event, context):
         if 'Item' in tabla_usuarios.get_item(Key={'usuario_id': usuario_id}):
             return {
                 'statusCode': 409,
-                'headers': {"Access-Control-Allow-Origin": "*"},
+                'headers': {'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({'error': 'El usuario ya existe'})
             }
 
@@ -49,13 +48,13 @@ def lambda_handler(event, context):
 
         return {
             'statusCode': 201,
-            'headers': {"Access-Control-Allow-Origin": "*"},
+            'headers': {'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({"message": "Usuario registrado correctamente"})
         }
 
     except Exception as e:
         return {
             'statusCode': 500,
-            'headers': {"Access-Control-Allow-Origin": "*"},
+            'headers': {'Access-Control-Allow-Origin': '*'},
             'body': json.dumps({'error': str(e)})
         }
