@@ -5,10 +5,13 @@ import base64
 import os
 import traceback
 
+# Inicializar clientes AWS
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 
+# Variables de entorno
 BUCKET_NAME = os.environ['BUCKET_NAME']
+TOKENS_TABLE = os.environ['TOKENS_TABLE_NAME']
 
 def _generar_con_diagrams(codigo_python: str) -> str:
     contenido = f"IMAGEN-REAL-AWS: {codigo_python}".encode()
@@ -25,12 +28,23 @@ def _generar_desde_json(json_data: dict) -> str:
 
 def lambda_handler(event, context):
     try:
-        authorizer_context = event.get('requestContext', {}).get('authorizer', {})
-        usuario_id = authorizer_context.get('principalId')
+        # Leer y validar token desde el header
+        headers = event.get("headers", {})
+        token = headers.get("Authorization", "").replace("Bearer ", "").strip()
 
-        if not usuario_id:
-            return {"statusCode": 403, "body": json.dumps({"error": "Acceso denegado. Identidad de usuario no proporcionada."})}
+        if not token:
+            return {"statusCode": 401, "body": json.dumps({"error": "Token requerido"})}
 
+        # Buscar token en tabla
+        tabla_tokens = dynamodb.Table(TOKENS_TABLE)
+        response = tabla_tokens.get_item(Key={"token": token})
+
+        if 'Item' not in response:
+            return {"statusCode": 403, "body": json.dumps({"error": "Token inválido o expirado"})}
+
+        usuario_id = response['Item']['usuario_id']
+
+        # Leer body
         body = json.loads(event.get("body", "{}"))
         codigo = body.get("source", "").strip()
         tipo = body.get("diagram_type", "").strip().lower()
@@ -38,7 +52,7 @@ def lambda_handler(event, context):
         if not codigo or not tipo:
             return {"statusCode": 400, "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})}
 
-        imagen_base64 = ""
+        # Generar imagen según tipo
         if tipo == 'aws':
             imagen_base64 = _generar_con_diagrams(codigo)
         elif tipo == 'er':
@@ -48,10 +62,11 @@ def lambda_handler(event, context):
                 json_data = json.loads(codigo)
                 imagen_base64 = _generar_desde_json(json_data)
             except json.JSONDecodeError:
-                raise ValueError("El código proporcionado no es un JSON válido.")
+                return {"statusCode": 400, "body": json.dumps({"error": "El código proporcionado no es un JSON válido."})}
         else:
-            raise ValueError(f"Tipo de diagrama '{tipo}' no soportado.")
+            return {"statusCode": 400, "body": json.dumps({"error": f"Tipo de diagrama '{tipo}' no soportado."})}
 
+        # Guardar imagen en S3
         archivo_id = str(uuid.uuid4())
         s3_key = f"{usuario_id}/{tipo}/{archivo_id}.png"
 
@@ -72,9 +87,6 @@ def lambda_handler(event, context):
             })
         }
 
-    except ValueError as ve:
-        return {"statusCode": 400, "body": json.dumps({"error": str(ve)})}
     except Exception as e:
-        error_message = f"Error inesperado: {str(e)}. Traceback: {traceback.format_exc()}"
-        print(error_message)
+        print(f"Error inesperado: {str(e)}\n{traceback.format_exc()}")
         return {"statusCode": 500, "body": json.dumps({"error": "Ocurrió un error interno en el servidor."})}
