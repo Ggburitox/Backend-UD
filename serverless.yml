@@ -1,8 +1,6 @@
 org: thiagorm
 service: diagram-studio-api
 
-frameworkVersion: '3.38.0'
-
 provider:
   name: aws
   runtime: python3.12
@@ -59,6 +57,18 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: usuario_id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+    TablaTokens:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TOKENS_TABLE_NAME}
+        AttributeDefinitions:
+          - AttributeName: token
+            AttributeType: S
+        KeySchema:
+          - AttributeName: token
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
 
