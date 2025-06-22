@@ -25,29 +25,38 @@ def _generar_desde_json(json_data: dict) -> str:
 
 def lambda_handler(event, context):
     try:
-        
         headers = event.get("headers", {})
         token = headers.get("Authorization", "").replace("Bearer ", "").strip()
 
         if not token:
-            return {"statusCode": 401, "body": json.dumps({"error": "Token requerido"})}
+            return {
+                "statusCode": 401,
+                "headers": {"Access-Control-Allow-Origin": "*"},
+                "body": json.dumps({"error": "Token requerido"})
+            }
 
         tabla_tokens = dynamodb.Table(os.environ['TOKENS_TABLE_NAME'])
         response = tabla_tokens.get_item(Key={"token": token})
 
         if 'Item' not in response:
-            return {"statusCode": 403, "body": json.dumps({"error": "Token inválido o expirado"})}
+            return {
+                "statusCode": 403,
+                "headers": {"Access-Control-Allow-Origin": "*"},
+                "body": json.dumps({"error": "Token inválido o expirado"})
+            }
 
         usuario_id = response['Item']['usuario_id']
-
         body = json.loads(event.get("body", "{}"))
         codigo = body.get("source", "").strip()
         tipo = body.get("diagram_type", "").strip().lower()
 
         if not codigo or not tipo:
-            return {"statusCode": 400, "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})}
+            return {
+                "statusCode": 400,
+                "headers": {"Access-Control-Allow-Origin": "*"},
+                "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})
+            }
 
-        imagen_base64 = ""
         if tipo == 'aws':
             imagen_base64 = _generar_con_diagrams(codigo)
         elif tipo == 'er':
@@ -75,6 +84,7 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": {"Access-Control-Allow-Origin": "*"},
             "body": json.dumps({
                 "imageUrl": image_url,
                 "archivo_id": archivo_id
@@ -82,9 +92,10 @@ def lambda_handler(event, context):
         }
 
     except ValueError as ve:
-        return {"statusCode": 400, "body": json.dumps({"error": str(ve)})}
+        return {
+            "statusCode": 400,
+            "headers": {"Access-Control-Allow-Origin": "*"},
+            "body": json.dumps({"error": str(ve)})
+        }
     except Exception as e:
-        error_message = f"Error inesperado: {str(e)}. Traceback: {traceback.format_exc()}"
-        print(error_message)
-        return {"statusCode": 500, "body": json.dumps({"error": "Ocurrió un error interno en el servidor."})}
-
+        error_message = f"Error inesperado: {str(e)}. Traceback: {traceback_
