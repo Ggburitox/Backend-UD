@@ -15,6 +15,17 @@ provider:
     USERS_TABLE_NAME: t_usuarios_UD
     TOKENS_TABLE_NAME: t_tokens_acceso
     BUCKET_NAME: diagram-studio-storage
+  httpApi:
+    cors:
+      allowedOrigins:
+        - '*'
+      allowedMethods:
+        - GET
+        - POST
+        - OPTIONS
+      allowedHeaders:
+        - Content-Type
+        - Authorization
 
 custom:
   pythonRequirements:
@@ -24,34 +35,30 @@ functions:
   RegistarUsuarioUD:
     handler: register.lambda_handler
     events:
-      - http:
+      - httpApi:
           path: /auth/register
-          method: post
-          cors: true
+          method: POST
 
   LoginUsuarioUD:
     handler: login.lambda_handler
     events:
-      - http:
+      - httpApi:
           path: /auth/login
-          method: post
-          cors: true
+          method: POST
 
   generar_diagrama:
     handler: generar_diagrama.lambda_handler
     events:
-      - http:
+      - httpApi:
           path: /diagrams/generate
-          method: post
-          cors: true
+          method: POST
 
   descargar_diagrama:
     handler: descargar_diagrama.lambda_handler
     events:
-      - http:
+      - httpApi:
           path: /diagrams/download
-          method: post
-          cors: true
+          method: POST
 
 resources:
   Resources:
