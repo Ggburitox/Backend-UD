@@ -7,8 +7,8 @@ import traceback
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
-
 BUCKET_NAME = os.environ['BUCKET_NAME']
+TOKENS_TABLE = os.environ['TOKENS_TABLE_NAME']
 
 def _generar_con_diagrams(codigo_python: str) -> str:
     contenido = f"IMAGEN-REAL-AWS: {codigo_python}".encode()
@@ -35,7 +35,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Token requerido"})
             }
 
-        tabla_tokens = dynamodb.Table(os.environ['TOKENS_TABLE_NAME'])
+        tabla_tokens = dynamodb.Table(TOKENS_TABLE)
         response = tabla_tokens.get_item(Key={"token": token})
 
         if 'Item' not in response:
@@ -98,8 +98,7 @@ def lambda_handler(event, context):
             "body": json.dumps({"error": str(ve)})
         }
     except Exception as e:
-        print("Error inesperado:", str(e))
-        print(traceback.format_exc())
+        print(f"Error inesperado: {str(e)}\n{traceback.format_exc()}")
         return {
             "statusCode": 500,
             "headers": {"Access-Control-Allow-Origin": "*"},
