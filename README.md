@@ -1,4 +1,5 @@
-Pautas para iniciar el proyecto:
+Pautas para iniciar el proyecto
+
 Se debe ejecutar en la consola los siguientes dos comandos:
 - pip3 install -r requirements.txt -t .
 - npm install --save-dev serverless-python-requirements
