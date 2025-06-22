@@ -11,8 +11,6 @@ provider:
   timeout: 29
   iam:
     role: arn:aws:iam::264641143307:role/LabRole
-  layers:
-    - arn:aws:lambda:us-east-1:553035198032:layer:graphviz:1
   environment:
     USERS_TABLE_NAME: t_usuarios_UD
     TOKENS_TABLE_NAME: t_tokens_acceso
