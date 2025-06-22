@@ -7,6 +7,7 @@ import traceback
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
+
 BUCKET_NAME = os.environ['BUCKET_NAME']
 TOKENS_TABLE = os.environ['TOKENS_TABLE_NAME']
 
@@ -25,8 +26,9 @@ def _generar_desde_json(json_data: dict) -> str:
 
 def lambda_handler(event, context):
     try:
+        # ✅ Leer el token directamente sin Bearer
         headers = event.get("headers", {})
-        token = headers.get("Authorization", "").replace("Bearer ", "").strip()
+        token = headers.get("Authorization", "").strip()
 
         if not token:
             return {
@@ -35,6 +37,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Token requerido"})
             }
 
+        # Validar token
         tabla_tokens = dynamodb.Table(TOKENS_TABLE)
         response = tabla_tokens.get_item(Key={"token": token})
 
@@ -57,6 +60,7 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "Los campos 'source' y 'diagram_type' son requeridos"})
             }
 
+        # Generar imagen simulada
         if tipo == 'aws':
             imagen_base64 = _generar_con_diagrams(codigo)
         elif tipo == 'er':
@@ -98,7 +102,7 @@ def lambda_handler(event, context):
             "body": json.dumps({"error": str(ve)})
         }
     except Exception as e:
-        print(f"Error inesperado: {str(e)}\n{traceback.format_exc()}")
+        print(f"Error inesperado: {str(e)}. Traceback: {traceback.format_exc()}")
         return {
             "statusCode": 500,
             "headers": {"Access-Control-Allow-Origin": "*"},
