@@ -32,6 +32,8 @@ functions:
 
   generar_diagrama:
     handler: generar_diagrama.lambda_handler
+    package:
+      artifact: generar_diagrama.zip
     events:
       - http:
           path: /diagrams/generate
